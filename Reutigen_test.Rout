@@ -1,0 +1,912 @@
+
+R version 3.4.0 (2017-04-21) -- "You Stupid Darkness"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(dada2); packageVersion("dada2")
+Loading required package: Rcpp
+Warning messages:
+1: package ‘dada2’ was built under R version 3.4.2 
+2: package ‘Rcpp’ was built under R version 3.4.3 
+[1] ‘1.6.0’
+> # File parsing for the first round of sequencing
+> pathF_Reutigen  <- "/Users/megaptera/dada2/Reutigen/fastq/pathF" # CHANGE ME to the directory containing the fastq files before unzipping.
+> pathR_Reutigen <- "/Users/megaptera/dada2/Reutigen/fastq/pathR"
+> filtpathF_Reutigen <- file.path(pathF_Reutigen, "filtered") # Filtered forward files go into the pathF/filtered/ subdirectory
+> filtpathR_Reutigen <- file.path(pathR_Reutigen, "filtered") # ...
+> fastqFs_Reutigen <- sort(list.files(pathF_Reutigen, pattern="fq.gz"))
+> fastqRs_Reutigen <- sort(list.files(pathR_Reutigen, pattern="fq.gz"))
+> if(length(fastqFs_Reutigen) != length(fastqRs_Reutigen)) stop("Forward and reverse files do not match.")
+> # Filtering: THESE PARAMETERS ARENT OPTIMAL FOR ALL DATASETS; truncQ=2 for Guillaume.
+> filterAndTrim(fwd=file.path(pathF_Reutigen, fastqFs_Reutigen), filt=file.path(filtpathF_Reutigen, fastqFs_Reutigen),
++               rev=file.path(pathR_Reutigen, fastqRs_Reutigen), filt.rev=file.path(filtpathR_Reutigen, fastqRs_Reutigen),
++               truncLen=c(280,200), maxEE=c(2,5), maxN=0, trimLeft = c(28,27),
++               compress=TRUE, verbose=TRUE, multithread=TRUE)
+Creating output directory: /Users/megaptera/dada2/Reutigen/fastq/pathF/filtered
+Creating output directory:/Users/megaptera/dada2/Reutigen/fastq/pathR/filtered
+> 
+> 
+> # Now quality filtering of the reads:
+> filtpathF_Reutigen_filtered <- "/Users/megaptera/dada2/Reutigen/fastq/pathF/filtered"
+> filtpathR_Reutigen_filtered <- "/Users/megaptera/dada2/Reutigen/fastq/pathR/filtered"
+> filtFs_Reutigen_filtered <- list.files(filtpathF_Reutigen_filtered, pattern="fq.gz", full.names = TRUE)
+> filtRs_Reutigen_filtered <- list.files(filtpathR_Reutigen_filtered, pattern="fq.gz", full.names = TRUE)
+> sample.names_Reutigen_filtered <- sapply(strsplit(basename(filtFs_Reutigen_filtered), "_"), `[`, 1) # Assumes filename = samplename_XXX.fastq.gz
+> sample.namesR_Reutigen_filtered <- sapply(strsplit(basename(filtRs_Reutigen_filtered), "_"), `[`, 1) # Assumes filename = samplename_XXX.fastq.gz
+> if(!identical(sample.names_Reutigen_filtered, sample.namesR_Reutigen_filtered)) stop("Forward and reverse files do not match.")
+> names(filtFs_Reutigen_filtered) <- sample.names_Reutigen_filtered
+> names(filtRs_Reutigen_filtered) <- sample.names_Reutigen_filtered
+> set.seed(20180524)
+> # Learn forward error rates
+> errF_Reutigen_filtered <- learnErrors(filtFs_Reutigen_filtered, nread=1e6, multithread=TRUE)
+Initializing error rates to maximum possible estimate.
+Sample 1 - 53884 reads in 18276 unique sequences.
+Sample 2 - 36908 reads in 12047 unique sequences.
+Sample 3 - 37335 reads in 13657 unique sequences.
+Sample 4 - 38584 reads in 14056 unique sequences.
+Sample 5 - 42810 reads in 14441 unique sequences.
+Sample 6 - 36784 reads in 12524 unique sequences.
+Sample 7 - 42902 reads in 15882 unique sequences.
+Sample 8 - 51204 reads in 18957 unique sequences.
+Sample 9 - 41819 reads in 16257 unique sequences.
+Sample 10 - 34748 reads in 10918 unique sequences.
+Sample 11 - 42396 reads in 15346 unique sequences.
+Sample 12 - 28543 reads in 10290 unique sequences.
+Sample 13 - 37465 reads in 13973 unique sequences.
+Sample 14 - 34486 reads in 13722 unique sequences.
+Sample 15 - 32315 reads in 12003 unique sequences.
+Sample 16 - 48339 reads in 16911 unique sequences.
+Sample 17 - 44191 reads in 16351 unique sequences.
+Sample 18 - 32395 reads in 12878 unique sequences.
+Sample 19 - 35082 reads in 13815 unique sequences.
+Sample 20 - 40126 reads in 15334 unique sequences.
+Sample 21 - 40246 reads in 13461 unique sequences.
+Sample 22 - 33591 reads in 11957 unique sequences.
+Sample 23 - 37104 reads in 12969 unique sequences.
+Sample 24 - 42840 reads in 16070 unique sequences.
+Sample 25 - 45942 reads in 15434 unique sequences.
+Sample 26 - 36497 reads in 12091 unique sequences.
+   selfConsist step 2 
+   selfConsist step 3 
+   selfConsist step 4 
+   selfConsist step 5 
+   selfConsist step 6 
+   selfConsist step 7 
+   selfConsist step 8 
+Convergence after  8  rounds.
+Total reads used:  1028536 
+> # Learn reverse error rates
+> errR_Reutigen_filtered <- learnErrors(filtRs_Reutigen_filtered, nread=1e6, multithread=TRUE)
+Initializing error rates to maximum possible estimate.
+Sample 1 - 53884 reads in 15360 unique sequences.
+Sample 2 - 36908 reads in 10393 unique sequences.
+Sample 3 - 37335 reads in 11228 unique sequences.
+Sample 4 - 38584 reads in 11748 unique sequences.
+Sample 5 - 42810 reads in 12161 unique sequences.
+Sample 6 - 36784 reads in 10589 unique sequences.
+Sample 7 - 42902 reads in 12700 unique sequences.
+Sample 8 - 51204 reads in 15443 unique sequences.
+Sample 9 - 41819 reads in 12914 unique sequences.
+Sample 10 - 34748 reads in 9065 unique sequences.
+Sample 11 - 42396 reads in 12380 unique sequences.
+Sample 12 - 28543 reads in 8475 unique sequences.
+Sample 13 - 37465 reads in 11331 unique sequences.
+Sample 14 - 34486 reads in 11242 unique sequences.
+Sample 15 - 32315 reads in 9841 unique sequences.
+Sample 16 - 48339 reads in 13851 unique sequences.
+Sample 17 - 44191 reads in 13398 unique sequences.
+Sample 18 - 32395 reads in 10477 unique sequences.
+Sample 19 - 35082 reads in 11027 unique sequences.
+Sample 20 - 40126 reads in 12349 unique sequences.
+Sample 21 - 40246 reads in 10796 unique sequences.
+Sample 22 - 33591 reads in 9885 unique sequences.
+Sample 23 - 37104 reads in 10523 unique sequences.
+Sample 24 - 42840 reads in 13062 unique sequences.
+Sample 25 - 45942 reads in 12930 unique sequences.
+Sample 26 - 36497 reads in 10241 unique sequences.
+   selfConsist step 2 
+   selfConsist step 3 
+   selfConsist step 4 
+   selfConsist step 5 
+   selfConsist step 6 
+Convergence after  6  rounds.
+Total reads used:  1028536 
+> # Sample inference and merger of paired-end reads
+> 
+> png(filename="/Users/megaptera/dada2/Reutigen/errF_Reutigen_filtered.png")
+> plotErrors(errF_Reutigen_filtered, nominalQ=TRUE)
+Warning message:
+Transformation introduced infinite values in continuous y-axis 
+> dev.off()
+null device 
+          1 
+> 
+> png(filename="/Users/megaptera/dada2/Reutigen/errR_Reutigen_filtered.png")
+> plotErrors(errR_Reutigen_filtered, nominalQ=TRUE)
+Warning messages:
+1: Transformation introduced infinite values in continuous y-axis 
+2: Transformation introduced infinite values in continuous y-axis 
+> dev.off()
+null device 
+          1 
+> 
+> # Then merge forward and reverse:
+> mergers_Reutigen_filtered <- vector("list", length(sample.names_Reutigen_filtered))
+> names(mergers_Reutigen_filtered) <- sample.names_Reutigen_filtered
+> for(sam in sample.names_Reutigen_filtered) {
++   cat("Processing:", sam, "\n")
++   derepF_Reutigen_filtered <- derepFastq(filtFs_Reutigen_filtered[[sam]])
++   ddF_Reutigen_filtered <- dada(derepF_Reutigen_filtered, err=errF_Reutigen_filtered, multithread=TRUE)
++   derepR_Reutigen_filtered <- derepFastq(filtRs_Reutigen_filtered[[sam]])
++   ddR_Reutigen_filtered <- dada(derepR_Reutigen_filtered, err=errR_Reutigen_filtered, multithread=TRUE)
++   merger_Reutigen_filtered <- mergePairs(ddF_Reutigen_filtered, derepF_Reutigen_filtered, ddR_Reutigen_filtered, derepR_Reutigen_filtered)
++   mergers_Reutigen_filtered[[sam]] <- merger_Reutigen_filtered
++ }
+Processing: Sample001 
+Sample 1 - 53884 reads in 18276 unique sequences.
+Sample 1 - 53884 reads in 15360 unique sequences.
+Processing: Sample002 
+Sample 1 - 36908 reads in 12047 unique sequences.
+Sample 1 - 36908 reads in 10393 unique sequences.
+Processing: Sample003 
+Sample 1 - 37335 reads in 13657 unique sequences.
+Sample 1 - 37335 reads in 11228 unique sequences.
+Processing: Sample004 
+Sample 1 - 38584 reads in 14056 unique sequences.
+Sample 1 - 38584 reads in 11748 unique sequences.
+Processing: Sample005 
+Sample 1 - 42810 reads in 14441 unique sequences.
+Sample 1 - 42810 reads in 12161 unique sequences.
+Processing: Sample006 
+Sample 1 - 36784 reads in 12524 unique sequences.
+Sample 1 - 36784 reads in 10589 unique sequences.
+Processing: Sample007 
+Sample 1 - 42902 reads in 15882 unique sequences.
+Sample 1 - 42902 reads in 12700 unique sequences.
+Processing: Sample008 
+Sample 1 - 51204 reads in 18957 unique sequences.
+Sample 1 - 51204 reads in 15443 unique sequences.
+Processing: Sample009 
+Sample 1 - 41819 reads in 16257 unique sequences.
+Sample 1 - 41819 reads in 12914 unique sequences.
+Processing: Sample010 
+Sample 1 - 34748 reads in 10918 unique sequences.
+Sample 1 - 34748 reads in 9065 unique sequences.
+Processing: Sample011 
+Sample 1 - 42396 reads in 15346 unique sequences.
+Sample 1 - 42396 reads in 12380 unique sequences.
+Processing: Sample012 
+Sample 1 - 28543 reads in 10290 unique sequences.
+Sample 1 - 28543 reads in 8475 unique sequences.
+Processing: Sample013 
+Sample 1 - 37465 reads in 13973 unique sequences.
+Sample 1 - 37465 reads in 11331 unique sequences.
+Processing: Sample014 
+Sample 1 - 34486 reads in 13722 unique sequences.
+Sample 1 - 34486 reads in 11242 unique sequences.
+Processing: Sample015 
+Sample 1 - 32315 reads in 12003 unique sequences.
+Sample 1 - 32315 reads in 9841 unique sequences.
+Processing: Sample016 
+Sample 1 - 48339 reads in 16911 unique sequences.
+Sample 1 - 48339 reads in 13851 unique sequences.
+Processing: Sample017 
+Sample 1 - 44191 reads in 16351 unique sequences.
+Sample 1 - 44191 reads in 13398 unique sequences.
+Processing: Sample018 
+Sample 1 - 32395 reads in 12878 unique sequences.
+Sample 1 - 32395 reads in 10477 unique sequences.
+Processing: Sample019 
+Sample 1 - 35082 reads in 13815 unique sequences.
+Sample 1 - 35082 reads in 11027 unique sequences.
+Processing: Sample020 
+Sample 1 - 40126 reads in 15334 unique sequences.
+Sample 1 - 40126 reads in 12349 unique sequences.
+Processing: Sample021 
+Sample 1 - 40246 reads in 13461 unique sequences.
+Sample 1 - 40246 reads in 10796 unique sequences.
+Processing: Sample022 
+Sample 1 - 33591 reads in 11957 unique sequences.
+Sample 1 - 33591 reads in 9885 unique sequences.
+Processing: Sample023 
+Sample 1 - 37104 reads in 12969 unique sequences.
+Sample 1 - 37104 reads in 10523 unique sequences.
+Processing: Sample024 
+Sample 1 - 42840 reads in 16070 unique sequences.
+Sample 1 - 42840 reads in 13062 unique sequences.
+Processing: Sample025 
+Sample 1 - 45942 reads in 15434 unique sequences.
+Sample 1 - 45942 reads in 12930 unique sequences.
+Processing: Sample026 
+Sample 1 - 36497 reads in 12091 unique sequences.
+Sample 1 - 36497 reads in 10241 unique sequences.
+Processing: Sample027 
+Sample 1 - 37654 reads in 12878 unique sequences.
+Sample 1 - 37654 reads in 10531 unique sequences.
+Processing: Sample028 
+Sample 1 - 50083 reads in 16644 unique sequences.
+Sample 1 - 50083 reads in 14131 unique sequences.
+Processing: Sample029 
+Sample 1 - 41459 reads in 16042 unique sequences.
+Sample 1 - 41459 reads in 13546 unique sequences.
+Processing: Sample030 
+Sample 1 - 47249 reads in 17050 unique sequences.
+Sample 1 - 47249 reads in 14335 unique sequences.
+Processing: Sample031 
+Sample 1 - 31470 reads in 11768 unique sequences.
+Sample 1 - 31470 reads in 9586 unique sequences.
+Processing: Sample032 
+Sample 1 - 48251 reads in 16793 unique sequences.
+Sample 1 - 48251 reads in 14028 unique sequences.
+Processing: Sample033 
+Sample 1 - 45920 reads in 16503 unique sequences.
+Sample 1 - 45920 reads in 13457 unique sequences.
+Processing: Sample034 
+Sample 1 - 31682 reads in 10685 unique sequences.
+Sample 1 - 31682 reads in 9104 unique sequences.
+Processing: Sample035 
+Sample 1 - 37781 reads in 12969 unique sequences.
+Sample 1 - 37781 reads in 10925 unique sequences.
+Processing: Sample036 
+Sample 1 - 36300 reads in 13009 unique sequences.
+Sample 1 - 36300 reads in 10820 unique sequences.
+Processing: Sample037 
+Sample 1 - 43433 reads in 16941 unique sequences.
+Sample 1 - 43433 reads in 13697 unique sequences.
+Processing: Sample038 
+Sample 1 - 46797 reads in 17758 unique sequences.
+Sample 1 - 46797 reads in 14494 unique sequences.
+Processing: Sample039 
+Sample 1 - 44640 reads in 16511 unique sequences.
+Sample 1 - 44640 reads in 13171 unique sequences.
+Processing: Sample040 
+Sample 1 - 47502 reads in 16828 unique sequences.
+Sample 1 - 47502 reads in 13944 unique sequences.
+Processing: Sample041 
+Sample 1 - 47067 reads in 18000 unique sequences.
+Sample 1 - 47067 reads in 13939 unique sequences.
+Processing: Sample042 
+Sample 1 - 26921 reads in 10721 unique sequences.
+Sample 1 - 26921 reads in 8645 unique sequences.
+Processing: Sample043 
+Sample 1 - 41711 reads in 16191 unique sequences.
+Sample 1 - 41711 reads in 12701 unique sequences.
+Processing: Sample044 
+Sample 1 - 39830 reads in 14872 unique sequences.
+Sample 1 - 39830 reads in 11630 unique sequences.
+Processing: Sample045 
+Sample 1 - 40209 reads in 15376 unique sequences.
+Sample 1 - 40209 reads in 12015 unique sequences.
+Processing: Sample046 
+Sample 1 - 41173 reads in 12611 unique sequences.
+Sample 1 - 41173 reads in 10282 unique sequences.
+Processing: Sample047 
+Sample 1 - 38601 reads in 12991 unique sequences.
+Sample 1 - 38601 reads in 10102 unique sequences.
+Processing: Sample048 
+Sample 1 - 53461 reads in 18503 unique sequences.
+Sample 1 - 53461 reads in 14970 unique sequences.
+Processing: Sample049 
+Sample 1 - 46771 reads in 16329 unique sequences.
+Sample 1 - 46771 reads in 13697 unique sequences.
+Processing: Sample050 
+Sample 1 - 30025 reads in 11387 unique sequences.
+Sample 1 - 30025 reads in 9273 unique sequences.
+Processing: Sample051 
+Sample 1 - 38777 reads in 13310 unique sequences.
+Sample 1 - 38777 reads in 10781 unique sequences.
+Processing: Sample052 
+Sample 1 - 41206 reads in 13687 unique sequences.
+Sample 1 - 41206 reads in 11813 unique sequences.
+Processing: Sample053 
+Sample 1 - 47811 reads in 16906 unique sequences.
+Sample 1 - 47811 reads in 13882 unique sequences.
+Processing: Sample054 
+Sample 1 - 46430 reads in 15503 unique sequences.
+Sample 1 - 46430 reads in 13024 unique sequences.
+Processing: Sample055 
+Sample 1 - 96077 reads in 27071 unique sequences.
+Sample 1 - 96077 reads in 21929 unique sequences.
+Processing: Sample056 
+Sample 1 - 53992 reads in 18269 unique sequences.
+Sample 1 - 53992 reads in 14983 unique sequences.
+Processing: Sample057 
+Sample 1 - 35120 reads in 12279 unique sequences.
+Sample 1 - 35120 reads in 9783 unique sequences.
+Processing: Sample058 
+Sample 1 - 22429 reads in 7527 unique sequences.
+Sample 1 - 22429 reads in 6233 unique sequences.
+Processing: Sample059 
+Sample 1 - 28759 reads in 10318 unique sequences.
+Sample 1 - 28759 reads in 8162 unique sequences.
+Processing: Sample060 
+Sample 1 - 31751 reads in 11030 unique sequences.
+Sample 1 - 31751 reads in 8890 unique sequences.
+Processing: Sample061 
+Sample 1 - 38175 reads in 13467 unique sequences.
+Sample 1 - 38175 reads in 11185 unique sequences.
+Processing: Sample062 
+Sample 1 - 29921 reads in 11183 unique sequences.
+Sample 1 - 29921 reads in 9216 unique sequences.
+Processing: Sample063 
+Sample 1 - 36435 reads in 12188 unique sequences.
+Sample 1 - 36435 reads in 10017 unique sequences.
+Processing: Sample064 
+Sample 1 - 36401 reads in 13295 unique sequences.
+Sample 1 - 36401 reads in 10833 unique sequences.
+Processing: Sample065 
+Sample 1 - 35854 reads in 13067 unique sequences.
+Sample 1 - 35854 reads in 10476 unique sequences.
+Processing: Sample066 
+Sample 1 - 21034 reads in 8293 unique sequences.
+Sample 1 - 21034 reads in 6838 unique sequences.
+Processing: Sample067 
+Sample 1 - 30318 reads in 10319 unique sequences.
+Sample 1 - 30318 reads in 8603 unique sequences.
+Processing: Sample068 
+Sample 1 - 30283 reads in 10501 unique sequences.
+Sample 1 - 30283 reads in 8719 unique sequences.
+Processing: Sample069 
+Sample 1 - 37103 reads in 12996 unique sequences.
+Sample 1 - 37103 reads in 10850 unique sequences.
+Processing: Sample070 
+Sample 1 - 31343 reads in 11035 unique sequences.
+Sample 1 - 31343 reads in 9155 unique sequences.
+Processing: Sample071 
+Sample 1 - 34835 reads in 12516 unique sequences.
+Sample 1 - 34835 reads in 10216 unique sequences.
+Processing: Sample072 
+Sample 1 - 38072 reads in 13064 unique sequences.
+Sample 1 - 38072 reads in 10753 unique sequences.
+Processing: Sample073 
+Sample 1 - 43090 reads in 13984 unique sequences.
+Sample 1 - 43090 reads in 11298 unique sequences.
+Processing: Sample074 
+Sample 1 - 27294 reads in 10036 unique sequences.
+Sample 1 - 27294 reads in 8200 unique sequences.
+Processing: Sample075 
+Sample 1 - 35598 reads in 11402 unique sequences.
+Sample 1 - 35598 reads in 9400 unique sequences.
+Processing: Sample076 
+Sample 1 - 39069 reads in 13559 unique sequences.
+Sample 1 - 39069 reads in 10902 unique sequences.
+Processing: Sample077 
+Sample 1 - 39804 reads in 15362 unique sequences.
+Sample 1 - 39804 reads in 12476 unique sequences.
+Processing: Sample078 
+Sample 1 - 38575 reads in 14154 unique sequences.
+Sample 1 - 38575 reads in 11625 unique sequences.
+Processing: Sample079 
+Sample 1 - 34321 reads in 12216 unique sequences.
+Sample 1 - 34321 reads in 9871 unique sequences.
+Processing: Sample080 
+Sample 1 - 43160 reads in 14847 unique sequences.
+Sample 1 - 43160 reads in 12150 unique sequences.
+Processing: Sample081 
+Sample 1 - 50157 reads in 17505 unique sequences.
+Sample 1 - 50157 reads in 14138 unique sequences.
+Processing: Sample082 
+Sample 1 - 27707 reads in 10787 unique sequences.
+Sample 1 - 27707 reads in 9014 unique sequences.
+Processing: Sample083 
+Sample 1 - 32020 reads in 12076 unique sequences.
+Sample 1 - 32020 reads in 9758 unique sequences.
+Processing: Sample084 
+Sample 1 - 36661 reads in 13710 unique sequences.
+Sample 1 - 36661 reads in 11219 unique sequences.
+Processing: Sample085 
+Sample 1 - 40497 reads in 13169 unique sequences.
+Sample 1 - 40497 reads in 11139 unique sequences.
+Processing: Sample086 
+Sample 1 - 39701 reads in 12611 unique sequences.
+Sample 1 - 39701 reads in 10546 unique sequences.
+Processing: Sample087 
+Sample 1 - 40982 reads in 13721 unique sequences.
+Sample 1 - 40982 reads in 11375 unique sequences.
+Processing: Sample088 
+Sample 1 - 45836 reads in 16223 unique sequences.
+Sample 1 - 45836 reads in 13018 unique sequences.
+Processing: Sample089 
+Sample 1 - 49503 reads in 15310 unique sequences.
+Sample 1 - 49503 reads in 12022 unique sequences.
+Processing: Sample090 
+Sample 1 - 23456 reads in 8453 unique sequences.
+Sample 1 - 23456 reads in 6877 unique sequences.
+Processing: Sample091 
+Sample 1 - 34096 reads in 11306 unique sequences.
+Sample 1 - 34096 reads in 8958 unique sequences.
+Processing: Sample092 
+Sample 1 - 35248 reads in 12117 unique sequences.
+Sample 1 - 35248 reads in 9637 unique sequences.
+Processing: Sample093 
+Sample 1 - 38455 reads in 14413 unique sequences.
+Sample 1 - 38455 reads in 11466 unique sequences.
+Processing: Sample094 
+Sample 1 - 30402 reads in 11101 unique sequences.
+Sample 1 - 30402 reads in 9068 unique sequences.
+Processing: Sample095 
+Sample 1 - 34673 reads in 12962 unique sequences.
+Sample 1 - 34673 reads in 10305 unique sequences.
+Processing: Sample096 
+Sample 1 - 33877 reads in 12295 unique sequences.
+Sample 1 - 33877 reads in 9955 unique sequences.
+Processing: Sample097 
+Sample 1 - 55671 reads in 16580 unique sequences.
+Sample 1 - 55671 reads in 13774 unique sequences.
+Processing: Sample098 
+Sample 1 - 24370 reads in 8891 unique sequences.
+Sample 1 - 24370 reads in 7204 unique sequences.
+Processing: Sample099 
+Sample 1 - 29092 reads in 10320 unique sequences.
+Sample 1 - 29092 reads in 8386 unique sequences.
+Processing: Sample100 
+Sample 1 - 38734 reads in 12818 unique sequences.
+Sample 1 - 38734 reads in 10677 unique sequences.
+Processing: Sample101 
+Sample 1 - 50148 reads in 15640 unique sequences.
+Sample 1 - 50148 reads in 12746 unique sequences.
+Processing: Sample102 
+Sample 1 - 31964 reads in 10181 unique sequences.
+Sample 1 - 31964 reads in 8453 unique sequences.
+Processing: Sample103 
+Sample 1 - 44243 reads in 11897 unique sequences.
+Sample 1 - 44243 reads in 9794 unique sequences.
+Processing: Sample104 
+Sample 1 - 78818 reads in 20842 unique sequences.
+Sample 1 - 78818 reads in 17275 unique sequences.
+Processing: Sample105 
+Sample 1 - 35990 reads in 11673 unique sequences.
+Sample 1 - 35990 reads in 9533 unique sequences.
+Processing: Sample106 
+Sample 1 - 17757 reads in 6331 unique sequences.
+Sample 1 - 17757 reads in 5232 unique sequences.
+Processing: Sample107 
+Sample 1 - 24295 reads in 8154 unique sequences.
+Sample 1 - 24295 reads in 6561 unique sequences.
+Processing: Sample108 
+Sample 1 - 208967 reads in 51949 unique sequences.
+Sample 1 - 208967 reads in 41128 unique sequences.
+Processing: Sample109 
+Sample 1 - 25498 reads in 9501 unique sequences.
+Sample 1 - 25498 reads in 7541 unique sequences.
+Processing: Sample110 
+Sample 1 - 35025 reads in 11827 unique sequences.
+Sample 1 - 35025 reads in 9456 unique sequences.
+Processing: Sample111 
+Sample 1 - 42188 reads in 13351 unique sequences.
+Sample 1 - 42188 reads in 10639 unique sequences.
+Processing: Sample112 
+Sample 1 - 37658 reads in 12734 unique sequences.
+Sample 1 - 37658 reads in 10231 unique sequences.
+Processing: Sample113 
+Sample 1 - 106141 reads in 26840 unique sequences.
+Sample 1 - 106141 reads in 21803 unique sequences.
+Processing: Sample114 
+Sample 1 - 15557 reads in 5889 unique sequences.
+Sample 1 - 15557 reads in 4708 unique sequences.
+Processing: Sample115 
+Sample 1 - 21878 reads in 7180 unique sequences.
+Sample 1 - 21878 reads in 5908 unique sequences.
+Processing: Sample116 
+Sample 1 - 26888 reads in 9843 unique sequences.
+Sample 1 - 26888 reads in 8179 unique sequences.
+Processing: Sample117 
+Sample 1 - 26818 reads in 9456 unique sequences.
+Sample 1 - 26818 reads in 7773 unique sequences.
+Processing: Sample118 
+Sample 1 - 30608 reads in 10627 unique sequences.
+Sample 1 - 30608 reads in 8568 unique sequences.
+Processing: Sample119 
+Sample 1 - 43406 reads in 13456 unique sequences.
+Sample 1 - 43406 reads in 10483 unique sequences.
+Processing: Sample120 
+Sample 1 - 42083 reads in 14251 unique sequences.
+Sample 1 - 42083 reads in 11033 unique sequences.
+Processing: Sample121 
+Sample 1 - 26433 reads in 9416 unique sequences.
+Sample 1 - 26433 reads in 7640 unique sequences.
+Processing: Sample122 
+Sample 1 - 25395 reads in 9097 unique sequences.
+Sample 1 - 25395 reads in 7491 unique sequences.
+Processing: Sample123 
+Sample 1 - 31630 reads in 11257 unique sequences.
+Sample 1 - 31630 reads in 8802 unique sequences.
+Processing: Sample124 
+Sample 1 - 29484 reads in 10661 unique sequences.
+Sample 1 - 29484 reads in 8777 unique sequences.
+Processing: Sample125 
+Sample 1 - 22630 reads in 8152 unique sequences.
+Sample 1 - 22630 reads in 6539 unique sequences.
+Processing: Sample126 
+Sample 1 - 16876 reads in 6348 unique sequences.
+Sample 1 - 16876 reads in 5130 unique sequences.
+Processing: Sample127 
+Sample 1 - 34583 reads in 10343 unique sequences.
+Sample 1 - 34583 reads in 8260 unique sequences.
+Processing: Sample128 
+Sample 1 - 36198 reads in 11281 unique sequences.
+Sample 1 - 36198 reads in 9152 unique sequences.
+Processing: Sample129 
+Sample 1 - 35759 reads in 11359 unique sequences.
+Sample 1 - 35759 reads in 8988 unique sequences.
+Processing: Sample130 
+Sample 1 - 25251 reads in 8675 unique sequences.
+Sample 1 - 25251 reads in 6857 unique sequences.
+Processing: Sample131 
+Sample 1 - 21739 reads in 7577 unique sequences.
+Sample 1 - 21739 reads in 6124 unique sequences.
+Processing: Sample132 
+Sample 1 - 30930 reads in 10039 unique sequences.
+Sample 1 - 30930 reads in 8358 unique sequences.
+Processing: Sample133 
+Sample 1 - 27550 reads in 9195 unique sequences.
+Sample 1 - 27550 reads in 7591 unique sequences.
+Processing: Sample134 
+Sample 1 - 40317 reads in 12309 unique sequences.
+Sample 1 - 40317 reads in 10120 unique sequences.
+Processing: Sample135 
+Sample 1 - 22137 reads in 7632 unique sequences.
+Sample 1 - 22137 reads in 6283 unique sequences.
+Processing: Sample136 
+Sample 1 - 28101 reads in 9366 unique sequences.
+Sample 1 - 28101 reads in 7595 unique sequences.
+Processing: Sample137 
+Sample 1 - 24500 reads in 8826 unique sequences.
+Sample 1 - 24500 reads in 6935 unique sequences.
+Processing: Sample138 
+Sample 1 - 14003 reads in 5417 unique sequences.
+Sample 1 - 14003 reads in 4371 unique sequences.
+Processing: Sample139 
+Sample 1 - 14281 reads in 5321 unique sequences.
+Sample 1 - 14281 reads in 4187 unique sequences.
+Processing: Sample140 
+Sample 1 - 23335 reads in 8951 unique sequences.
+Sample 1 - 23335 reads in 7139 unique sequences.
+Processing: Sample141 
+Sample 1 - 25378 reads in 8642 unique sequences.
+Sample 1 - 25378 reads in 6673 unique sequences.
+Processing: Sample142 
+Sample 1 - 14706 reads in 5932 unique sequences.
+Sample 1 - 14706 reads in 4719 unique sequences.
+Processing: Sample143 
+Sample 1 - 25558 reads in 8364 unique sequences.
+Sample 1 - 25558 reads in 6414 unique sequences.
+Processing: Sample144 
+Sample 1 - 20714 reads in 7253 unique sequences.
+Sample 1 - 20714 reads in 5626 unique sequences.
+Processing: Sample145 
+Sample 1 - 104544 reads in 26185 unique sequences.
+Sample 1 - 104544 reads in 22196 unique sequences.
+Processing: Sample146 
+Sample 1 - 58940 reads in 17012 unique sequences.
+Sample 1 - 58940 reads in 13781 unique sequences.
+Processing: Sample147 
+Sample 1 - 62919 reads in 17762 unique sequences.
+Sample 1 - 62919 reads in 14814 unique sequences.
+Processing: Sample148 
+Sample 1 - 105650 reads in 25453 unique sequences.
+Sample 1 - 105650 reads in 21413 unique sequences.
+Processing: Sample149 
+Sample 1 - 94814 reads in 24990 unique sequences.
+Sample 1 - 94814 reads in 20701 unique sequences.
+Processing: Sample150 
+Sample 1 - 108043 reads in 25385 unique sequences.
+Sample 1 - 108043 reads in 21689 unique sequences.
+Processing: Sample151 
+Sample 1 - 109510 reads in 26732 unique sequences.
+Sample 1 - 109510 reads in 22284 unique sequences.
+Processing: Sample152 
+Sample 1 - 99189 reads in 25834 unique sequences.
+Sample 1 - 99189 reads in 21457 unique sequences.
+Processing: Sample153 
+Sample 1 - 55695 reads in 16388 unique sequences.
+Sample 1 - 55695 reads in 12946 unique sequences.
+Processing: Sample154 
+Sample 1 - 44359 reads in 13745 unique sequences.
+Sample 1 - 44359 reads in 11070 unique sequences.
+Processing: Sample155 
+Sample 1 - 59925 reads in 16445 unique sequences.
+Sample 1 - 59925 reads in 13215 unique sequences.
+Processing: Sample156 
+Sample 1 - 63432 reads in 16247 unique sequences.
+Sample 1 - 63432 reads in 13205 unique sequences.
+Processing: Sample157 
+Sample 1 - 64949 reads in 17539 unique sequences.
+Sample 1 - 64949 reads in 14129 unique sequences.
+Processing: Sample158 
+Sample 1 - 76423 reads in 19132 unique sequences.
+Sample 1 - 76423 reads in 15648 unique sequences.
+Processing: Sample159 
+Sample 1 - 30896 reads in 9056 unique sequences.
+Sample 1 - 30896 reads in 7516 unique sequences.
+Processing: Sample160 
+Sample 1 - 44705 reads in 12248 unique sequences.
+Sample 1 - 44705 reads in 10169 unique sequences.
+Processing: Sample161 
+Sample 1 - 51118 reads in 14618 unique sequences.
+Sample 1 - 51118 reads in 12135 unique sequences.
+Processing: Sample162 
+Sample 1 - 41412 reads in 12120 unique sequences.
+Sample 1 - 41412 reads in 9885 unique sequences.
+Processing: Sample163 
+Sample 1 - 46535 reads in 13129 unique sequences.
+Sample 1 - 46535 reads in 10702 unique sequences.
+Processing: Sample164 
+Sample 1 - 48891 reads in 12443 unique sequences.
+Sample 1 - 48891 reads in 10611 unique sequences.
+Processing: Sample165 
+Sample 1 - 59813 reads in 23670 unique sequences.
+Sample 1 - 59813 reads in 19549 unique sequences.
+Processing: Sample166 
+Sample 1 - 46348 reads in 18941 unique sequences.
+Sample 1 - 46348 reads in 16480 unique sequences.
+Processing: Sample167 
+Sample 1 - 53935 reads in 19458 unique sequences.
+Sample 1 - 53935 reads in 16829 unique sequences.
+Processing: Sample168 
+Sample 1 - 62724 reads in 23843 unique sequences.
+Sample 1 - 62724 reads in 20213 unique sequences.
+Processing: Sample169 
+Sample 1 - 44961 reads in 19090 unique sequences.
+Sample 1 - 44961 reads in 16065 unique sequences.
+Processing: Sample170 
+Sample 1 - 64937 reads in 23076 unique sequences.
+Sample 1 - 64937 reads in 20243 unique sequences.
+Processing: Sample171 
+Sample 1 - 45373 reads in 18207 unique sequences.
+Sample 1 - 45373 reads in 15348 unique sequences.
+Processing: Sample172 
+Sample 1 - 44654 reads in 15349 unique sequences.
+Sample 1 - 44654 reads in 13765 unique sequences.
+Processing: Sample173 
+Sample 1 - 47750 reads in 16853 unique sequences.
+Sample 1 - 47750 reads in 15108 unique sequences.
+Processing: Sample174 
+Sample 1 - 50340 reads in 18889 unique sequences.
+Sample 1 - 50340 reads in 16554 unique sequences.
+Processing: Sample175 
+Sample 1 - 43474 reads in 15713 unique sequences.
+Sample 1 - 43474 reads in 13559 unique sequences.
+Processing: Sample176 
+Sample 1 - 53978 reads in 19811 unique sequences.
+Sample 1 - 53978 reads in 17503 unique sequences.
+Processing: Sample177 
+Sample 1 - 40371 reads in 15742 unique sequences.
+Sample 1 - 40371 reads in 13707 unique sequences.
+Processing: Sample178 
+Sample 1 - 36887 reads in 14565 unique sequences.
+Sample 1 - 36887 reads in 12638 unique sequences.
+Processing: Sample179 
+Sample 1 - 51038 reads in 15579 unique sequences.
+Sample 1 - 51038 reads in 13107 unique sequences.
+Processing: Sample180 
+Sample 1 - 56278 reads in 19446 unique sequences.
+Sample 1 - 56278 reads in 16634 unique sequences.
+Processing: Sample181 
+Sample 1 - 61483 reads in 20328 unique sequences.
+Sample 1 - 61483 reads in 16704 unique sequences.
+Processing: Sample182 
+Sample 1 - 50562 reads in 12863 unique sequences.
+Sample 1 - 50562 reads in 11171 unique sequences.
+Processing: Sample183 
+Sample 1 - 53303 reads in 16028 unique sequences.
+Sample 1 - 53303 reads in 13094 unique sequences.
+> rm(derepF_Reutigen_filtered); rm(derepR_Reutigen_filtered)
+> 
+> # Construct sequence table
+> seqtab_Reutigen_filtered <- makeSequenceTable(mergers_Reutigen_filtered)
+The sequences being tabled vary in length.
+> write.table(seqtab_Reutigen_filtered, file="/Users/megaptera/dada2/Reutigen/seqtab_Reutigen.txt")
+> saveRDS(seqtab_Reutigen_filtered, "/Users/megaptera/dada2/Reutigen/seqtab_Reutigen.rds") # CHANGE ME to where you want sequence table saved
+> 
+> # remove chimeras:
+> seqtab.chim.Reutigen <- removeBimeraDenovo(seqtab_Reutigen_filtered, method="consensus", multithread=TRUE)
+> 
+> # keep track of how many reads we kept after each round of filtering:
+> out.Reutigen <- filterAndTrim(fwd=file.path(pathF_Reutigen, fastqFs_Reutigen), filt=file.path(filtpathF_Reutigen, fastqFs_Reutigen),
++                               rev=file.path(pathR_Reutigen, fastqRs_Reutigen), filt.rev=file.path(filtpathR_Reutigen, fastqRs_Reutigen),
++                               truncLen=c(280,200), maxEE=c(2,5), maxN=0, trimLeft = c(28,27),
++                               compress=TRUE, verbose=TRUE, multithread=TRUE)
+> 
+> track <- cbind(out.Reutigen, rowSums(seqtab_Reutigen_filtered), rowSums(seqtab.chim.Reutigen))
+> colnames(track) <- c("input","filtered","tabled", "nonchim")
+> rownames(track) <- sample.names_Reutigen_filtered
+> head(track)
+          input filtered tabled nonchim
+Sample001 64048    53884  48772   39968
+Sample002 42742    36908  33745   28508
+Sample003 44038    37335  34083   29666
+Sample004 45083    38584  35057   29390
+Sample005 49873    42810  39192   33860
+Sample006 43553    36784  33848   29726
+> 
+> write.table(track, file="/Users/megaptera/dada2/Reutigen/Reutigen_read_stats.txt")
+> 
+> # Assign taxonomy:
+> tax_Reutigen <- assignTaxonomy(seqtab.chim.Reutigen, "/Users/megaptera/dada2/silva_nr_v132_train_set.fa", multithread=TRUE) # done
+> tax_Reutigen_green <- assignTaxonomy(seqtab.chim.Reutigen, "/Users/megaptera/dada2/gg_13_8_train_set_97.fa", multithread=TRUE)
+> #tax_Reutigen_species <- addSpecies(tax_Reutigen, "/Users/megaptera/dada2/silva_species_assignment_v132.fa", multithread=TRUE)
+> 
+> saveRDS(seqtab.chim.Reutigen, "/Users/megaptera/dada2/Reutigen/seqtab_chim_Reutigen.rds") 
+> saveRDS(tax_Reutigen, "/Users/megaptera/dada2/Reutigen/tax_Reutigen.rds")
+> saveRDS(tax_Reutigen_green, "/Users/megaptera/dada2/Reutigen/tax_Reutigen_green.rds")
+> #saveRDS(tax_Reutigen_species, "/Users/megaptera/dada2/Reutigen/tax_Reutigen_species.rds")
+> 
+> write.table(tax_Reutigen_green, file="/Users/megaptera/dada2/Reutigen/tax_Reutigen_green.txt")
+> write.table(tax_Reutigen, file="/Users/megaptera/dada2/Reutigen/tax_Reutigen_silva.txt")
+> 
+> write.table(seqtab.chim.Reutigen, file="/Users/megaptera/dada2/Reutigen/seqtab_chim_Reutigen.txt")
+> 
+> 
+> # Now build a tree:
+> 
+> # First we need to get the right libraries.
+> library("knitr")
+Warning message:
+package ‘knitr’ was built under R version 3.4.3 
+> source("https://bioconductor.org/biocLite.R")
+Bioconductor version 3.6 (BiocInstaller 1.28.0), ?biocLite for help
+A new version of Bioconductor is available after installing the most recent
+  version of R; see http://bioconductor.org/install
+> biocLite("BiocStyle")
+BioC_mirror: https://bioconductor.org
+Using Bioconductor 3.6 (BiocInstaller 1.28.0), R 3.4.0 (2017-04-21).
+Installing package(s) ‘BiocStyle’
+trying URL 'https://bioconductor.org/packages/3.6/bioc/bin/macosx/el-capitan/contrib/3.4/BiocStyle_2.6.1.tgz'
+Content type 'application/x-gzip' length 982561 bytes (959 KB)
+==================================================
+downloaded 959 KB
+
+
+The downloaded binary packages are in
+	/var/folders/j4/v454ypm13jj8wxy8jd6hsm0c0000h0/T//Rtmp2jeLdT/downloaded_packages
+installation path not writeable, unable to update packages: ade4, ape, BH,
+  bindr, bindrcpp, bit, blob, cluster, commonmark, covr, crul, curl, DBI,
+  dbplyr, dendextend, desc, dplyr, foreign, ggrepel, git2r, GlobalOptions, hms,
+  htmlwidgets, httpuv, igraph, irlba, kernlab, knitr, MASS, Matrix,
+  matrixStats, mgcv, miniUI, nlme, NMF, openssl, pkgmaker, plogr, processx,
+  quantmod, RCurl, rentrez, ritis, rmarkdown, RMySQL, rngtools, robustbase,
+  rotl, rpart, RSQLite, seriation, shape, shiny, shinyAce, sourcetools,
+  survival, taxize, tibble, tidyr, tidyselect, timeDate, tree, tseries, TSP,
+  vegan, VennDiagram, viridis, viridisLite, withr, worrms, XML, xts, yaml
+Old packages: 'bookdown', 'data.table', 'futile.options', 'GenomicAlignments',
+  'GenomicRanges', 'lambda.r', 'phangorn', 'pillar', 'Rcpp', 'RcppParallel',
+  'rlang', 'ShortRead', 'stringi', 'stringr', 'utf8'
+> library("BiocStyle")
+Warning message:
+package ‘BiocStyle’ was built under R version 3.4.2 
+> .cran_packages <- c("ggplot2", "gridExtra")
+> .bioc_packages <- c("dada2", "phyloseq", "DECIPHER", "phangorn")
+> .inst <- .cran_packages %in% installed.packages()
+> if(any(!.inst)) {
++   install
++   
++   
++   .packages(.cran_packages[!.inst])
++ }
+> .inst <- .bioc_packages %in% installed.packages()
+> if(any(!.inst)) {
++   source("http://bioconductor.org/biocLite.R")
++   biocLite(.bioc_packages[!.inst], ask = F)
++ }
+> 
+> 
+> # Load packages into session, and print package version
+> sapply(c(.cran_packages, .bioc_packages), require, character.only = TRUE)
+Loading required package: ggplot2
+Loading required package: gridExtra
+Loading required package: phyloseq
+Loading required package: DECIPHER
+Loading required package: Biostrings
+Loading required package: BiocGenerics
+Loading required package: parallel
+
+Attaching package: ‘BiocGenerics’
+
+The following objects are masked from ‘package:parallel’:
+
+    clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+    clusterExport, clusterMap, parApply, parCapply, parLapply,
+    parLapplyLB, parRapply, parSapply, parSapplyLB
+
+The following object is masked from ‘package:gridExtra’:
+
+    combine
+
+The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from ‘package:base’:
+
+    anyDuplicated, append, as.data.frame, cbind, colMeans, colnames,
+    colSums, do.call, duplicated, eval, evalq, Filter, Find, get, grep,
+    grepl, intersect, is.unsorted, lapply, lengths, Map, mapply, match,
+    mget, order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+    rbind, Reduce, rowMeans, rownames, rowSums, sapply, setdiff, sort,
+    table, tapply, union, unique, unsplit, which, which.max, which.min
+
+Loading required package: S4Vectors
+Loading required package: stats4
+
+Attaching package: ‘S4Vectors’
+
+The following object is masked from ‘package:base’:
+
+    expand.grid
+
+Loading required package: IRanges
+
+Attaching package: ‘IRanges’
+
+The following object is masked from ‘package:phyloseq’:
+
+    distance
+
+Loading required package: XVector
+
+Attaching package: ‘Biostrings’
+
+The following object is masked from ‘package:base’:
+
+    strsplit
+
+Loading required package: RSQLite
+Loading required package: phangorn
+Loading required package: ape
+
+Attaching package: ‘ape’
+
+The following object is masked from ‘package:Biostrings’:
+
+    complement
+
+  ggplot2 gridExtra     dada2  phyloseq  DECIPHER  phangorn 
+     TRUE      TRUE      TRUE      TRUE      TRUE      TRUE 
+There were 11 warnings (use warnings() to see them)
+> 
+> library(dada2)
+> library(phyloseq)
+> library(DECIPHER)
+> library(phangorn)
+> 
+> seqs.Reutigen <- getSequences(seqtab.chim.Reutigen)
+> names(seqs.Reutigen) <- seqs.Reutigen # This propagates to the tip labels of the tree
+> alignment.Reutigen <- AlignSeqs(DNAStringSet(seqs.Reutigen), anchor=NA,verbose=FALSE)
+> saveRDS(alignment.Reutigen, "/Users/megaptera/dada2/Reutigen/alignment_Reutigen.rds")
+> 
+> phangAlign.Reutigen <- phyDat(as(alignment.Reutigen, "matrix"), type="DNA")
+> dm1 <- dist.ml(phangAlign.Reutigen)
+> treeNJ1 <- NJ(dm1) # Note, tip order != sequence order
+> fit.Reutigen = pml(treeNJ1, data=phangAlign.Reutigen)
+negative edges length changed to 0!
+> fitGTR1 <- update(fit.Reutigen, k=4, inv=0.2)
+> fitGTR1 <- optim.pml(fitGTR1, model="GTR", optInv=TRUE, optGamma=TRUE,
++                      rearrangement = "stochastic", control = pml.control(trace = 0))
+> 
+> saveRDS(fitGTR1, "/Users/megaptera/dada2/Reutigen/fitGTR_Reutigen.rds")
+> 
+> 
+> library(ape)
+> 
+> write.tree(fitGTR1$tree, file="/Users/megaptera/dada2/Reutigen/Reutigen_tree.tre")
+> 
+> 
+> 
+> proc.time()
+     user    system   elapsed 
+37433.214   732.829 20019.657 
